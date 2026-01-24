@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Timemark Style Pro</title>
+<style>
+body{font-family:Arial;background:#f4f4f4;padding:10px}
+input,button,label{width:100%;padding:6px;margin:4px 0;font-size:14px}
+canvas{max-width:100%;margin-top:10px;border:1px solid #ccc}
+.controls{background:#fff;padding:10px;border-radius:8px}
+</style>
+</head>
+
+<body>
+
+<!-- ===== LỚP KHÓA BÁN LINK (KHÔNG ẢNH HƯỞNG UI) ===== -->
+<div id="lockScreen" style="
+  position:fixed;
+  inset:0;
+  background:#f4f4f4;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+">
+  <div style="background:#fff;padding:16px;border-radius:10px;max-width:320px;width:100%">
+    <h3>🔐 Kích hoạt Timemark</h3>
+    <p style="font-size:14px">Vui lòng sử dụng link kích hoạt do người bán cung cấp</p>
+    <p id="lockMsg" style="color:red;font-size:14px"></p>
+  </div>
+</div>
+
+<!-- ===== APP TIMEMARK (GIỮ NGUYÊN) ===== -->
+<div id="appLock">
+
+<h3>📍 Timemark Style Pro</h3>
+
+<div class="controls">
+<input type="file" id="imageInput" accept="image/*">
+
+<label>Tiêu đề</label>
+<input type="text" id="title" value="Điểm danh">
+
+<label>Giờ</label>
+<input type="text" id="time">
+
+<label>Ngày</label>
+<input type="text" id="date">
+
+<label>Địa điểm</label>
+<input type="text" id="addressInput"
+value="Trung Trắc, Phường 1, TP. Mỹ Tho, Tiền Giang">
+
+<button onclick="setNow()">⏱ Lấy giờ hiện tại</button>
+<button onclick="getGPS()">📡 Lấy GPS</button>
+<button onclick="draw()">🖊 Tạo watermark</button>
+<button onclick="download()">⬇️ Tải ảnh</button>
+</div>
+
+<canvas id="c"></canvas>
+
+</div>
+
+<script>
+/* ======================================================
+   🔐 QUẢN LÝ KEY – CHỈ SỬA PHẦN NÀY TRÊN GITHUB
+   ====================================================== */
+const KEY_DB = {
+  "TMK-VL01-0326": { expire: "2026-03-31" },
+  "TMK-TEST-30D": { expire: "2026-02-28" }
+};
+/* ====================================================== */
+
+/* ===== DEVICE ID ===== */
+function getDeviceId(){
+  let id = localStorage.getItem("tmk_device");
+  if(!id){
+    id = "DEV-" + Math.random().toString(36).substr(2,10).toUpperCase();
+    localStorage.setItem("tmk_device", id);
+  }
+  return id;
+}
+
+/* ===== CHECK ACCESS (BÁN LINK) ===== */
+function checkAccess(){
+  const params = new URLSearchParams(window.location.search);
+  const linkKey = params.get("key");
+  const savedKey = localStorage.getItem("tmk_key");
+  const device = getDeviceId();
+  const today = new Date().toISOString().slice(0,10);
+
+  const key = linkKey || savedKey;
+  if(!key || !KEY_DB[key]){
+    deny("Key không hợp lệ");
+    return;
+  }
+
+  if(today > KEY_DB[key].expire){
+    deny("Key đã hết hạn");
+    return;
+  }
+
+  const usedDevice = localStorage.getItem("tmk_key_device");
+  if(usedDevice && usedDevice !== device){
+    deny("Key đã được kích hoạt trên thiết bị khác");
+    return;
+  }
+
+  localStorage.setItem("tmk_key", key);
+  localStorage.setItem("tmk_key_device", device);
+
+  unlock();
+
+  if(linkKey){
+    history.replaceState({}, document.title, location.pathname);
+  }
+}
+
+function unlock(){
+  document.getElementById("lockScreen").style.display="none";
+  document.getElementById("appLock").style.display="block";
+}
+
+function deny(msg){
+  document.getElementById("lockMsg").innerText = msg;
+  document.getElementById("appLock").style.display="none";
+}
+
+/* ===== KÍCH HOẠT NGAY ===== */
+checkAccess();
+
+/* ================= CONFIG ================= */
+const DAMP = 0.85;
+
+/* ================= INIT ================= */
+const c = document.getElementById("c");
+const ctx = c.getContext("2d");
+const imageInput = document.getElementById("imageInput");
+let img = new Image();
+
+/* ================= SCALE ================= */
+function fs(pct){
+  const base = Math.min(c.width, c.height);
+  return Math.max(14, Math.min(64, Math.round(base * pct * DAMP)));
+}
+
+/* ================= UTILS ================= */
+function roundRect(ctx,x,y,w,h,r,fill){
+ ctx.beginPath();
+ ctx.moveTo(x+r,y);
+ ctx.lineTo(x+w-r,y);
+ ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+ ctx.lineTo(x+w,y+h-r);
+ ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+ ctx.lineTo(x+r,y+h);
+ ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+ ctx.lineTo(x,y+r);
+ ctx.quadraticCurveTo(x,y,x+r,y);
+ ctx.closePath();
+ if(fill) ctx.fill();
+}
+
+function generateCode(len=14){
+ const s="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+ return Array.from({length:len},()=>s[Math.random()*s.length|0]).join("");
+}
+
+/* ================= LOAD IMAGE ================= */
+imageInput.addEventListener("change", e=>{
+ const file = e.target.files[0];
+ if(!file) return;
+ const r = new FileReader();
+ r.onload = ()=> img.src = r.result;
+ r.readAsDataURL(file);
+});
+
+img.onload = ()=>{
+ c.width = img.width;
+ c.height = img.height;
+ ctx.drawImage(img,0,0);
+};
+
+/* ================= TIME ================= */
+function setNow(){
+ const n = new Date();
+ time.value = n.toLocaleTimeString("vi-VN",{hour:'2-digit',minute:'2-digit'});
+ date.value = n.toLocaleDateString("vi-VN",{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+
+/* ================= GPS ================= */
+function getGPS(){
+ navigator.geolocation.getCurrentPosition(p=>{
+  addressInput.value =
+   `Lat ${p.coords.latitude.toFixed(5)}, Lng ${p.coords.longitude.toFixed(5)}`;
+ });
+}
+
+/* ================= DRAW ================= */
+function draw(){
+ if(!img.src) return alert("Vui lòng chọn ảnh trước");
+
+ ctx.drawImage(img,0,0);
+
+ const pad = fs(0.03);
+ const boxX = pad;
+
+ const infoHeight =
+   fs(0.075)+fs(0.04)+fs(0.03)+fs(0.04)+fs(0.05)+fs(0.05);
+
+ let cursorY = c.height - infoHeight - fs(0.04);
+ if(cursorY < pad) cursorY = pad;
+
+ ctx.font = `bold ${fs(0.035)}px Arial`;
+ const titleW = ctx.measureText(title.value).width + pad*2;
+ ctx.font = `bold ${fs(0.045)}px Arial`;
+ const timeW = ctx.measureText(time.value).width + pad*2;
+ const boxH = fs(0.075);
+
+ ctx.fillStyle="#fff";
+ roundRect(ctx,boxX,cursorY,titleW+timeW,boxH,fs(0.02),true);
+ ctx.fillStyle="#FFC107";
+ roundRect(ctx,boxX,cursorY,titleW,boxH,fs(0.02),true);
+ ctx.fillStyle="#1E88E5";
+ roundRect(ctx,boxX+titleW,cursorY,timeW,boxH,fs(0.02),true);
+
+ ctx.textAlign="center";
+ ctx.fillStyle="#000";
+ ctx.font=`bold ${fs(0.035)}px Arial`;
+ ctx.fillText(title.value,boxX+titleW/2,cursorY+boxH*0.68);
+ ctx.fillStyle="#fff";
+ ctx.font=`bold ${fs(0.045)}px Arial`;
+ ctx.fillText(time.value,boxX+titleW+timeW/2,cursorY+boxH*0.72);
+ ctx.textAlign="left";
+
+ cursorY+=boxH+fs(0.04);
+
+ ctx.fillStyle="#fff";
+ ctx.font=`${fs(0.03)}px Arial`;
+ ctx.fillText(date.value,boxX,cursorY);
+ cursorY+=fs(0.04);
+
+ if(addressInput.value.trim()){
+  ctx.fillStyle="#FFC107";
+  ctx.fillRect(boxX,cursorY-fs(0.028),fs(0.008),fs(0.05));
+  ctx.fillStyle="#fff";
+  ctx.font=`${fs(0.028)}px Arial`;
+  ctx.fillText(addressInput.value,boxX+fs(0.025),cursorY);
+  cursorY+=fs(0.05);
+ }
+
+ ctx.fillStyle="rgba(255,255,255,0.45)";
+ ctx.font=`${fs(0.022)}px Arial`;
+ ctx.fillText("✓", pad+fs(0.015), cursorY);
+ ctx.font=`${fs(0.023)}px Arial`;
+ ctx.fillText("Cam kết ngày giờ chân thực", boxX+fs(0.05), cursorY);
+
+ ctx.textAlign="right";
+ ctx.font=`bold ${fs(0.035)}px Arial`;
+ const markW=ctx.measureText("mark").width;
+ ctx.fillStyle="#FFC107";
+ ctx.fillText("Time",c.width-pad-markW,c.height-pad-fs(0.03));
+ ctx.fillStyle="rgba(255,255,255,0.9)";
+ ctx.fillText("mark",c.width-pad,c.height-pad-fs(0.03));
+ ctx.fillStyle="rgba(255,255,255,0.45)";
+ ctx.font=`${fs(0.024)}px Arial`;
+ ctx.fillText("100% Chân thực",c.width-pad,c.height-pad);
+ ctx.textAlign="left";
+
+ ctx.save();
+ ctx.translate(c.width-fs(0.02),c.height/2);
+ ctx.rotate(-Math.PI/2);
+ ctx.fillStyle="rgba(255,255,255,0.85)";
+ ctx.font=`${fs(0.025)}px Arial`;
+ ctx.textAlign="center";
+ ctx.fillText("ⓒ "+generateCode()+" · Timemark Verified",0,0);
+ ctx.restore();
+}
+
+/* ================= DOWNLOAD ================= */
+function download(){
+ if(!img.src) return;
+ const a=document.createElement("a");
+ a.download="timemark-style.png";
+ a.href=c.toDataURL("image/png");
+ a.click();
+}
+
+setNow();
+</script>
+</body>
+</html>
