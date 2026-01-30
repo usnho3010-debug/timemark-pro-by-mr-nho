@@ -278,17 +278,50 @@ function draw(){
 }
 
 /* ================= DOWNLOAD ================= */
-function download(){
- if(!img.src) return;
- const a=document.createElement("a");
- a.download="timemark-style.png";
- a.href=c.toDataURL("image/png");
- a.click();
+<script>
+function isIOS(){
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
+
+function download(){
+  if(!img.src) return;
+
+  const dataURL = c.toDataURL("image/png");
+
+  if(isIOS()){
+    // ✅ iOS: mở ảnh ra tab mới để lưu thủ công
+    const win = window.open();
+    win.document.write(`
+      <html>
+        <head>
+          <title>Lưu ảnh Timemark</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+        </head>
+        <body style="margin:0;text-align:center;background:#000">
+          <p style="color:#fff;font-size:14px">
+            Nhấn giữ ảnh → Lưu vào Ảnh
+          </p>
+          <img src="${dataURL}" style="max-width:100%">
+        </body>
+      </html>
+    `);
+  }else{
+    // ✅ Android / PC
+    const a = document.createElement("a");
+    a.href = dataURL;
+    a.download = "timemark-style.png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+}
+</script>
+
 
 setNow();
 </script>
 </body>
 </html>
+
 
 
