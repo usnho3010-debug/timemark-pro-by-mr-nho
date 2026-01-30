@@ -13,26 +13,6 @@ canvas{max-width:100%;margin-top:10px;border:1px solid #ccc}
 
 <body>
 
-<!-- ===== LỚP KHÓA BÁN LINK (KHÔNG ẢNH HƯỞNG UI) ===== -->
-<div id="lockScreen" style="
-  position:fixed;
-  inset:0;
-  background:#f4f4f4;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-">
-  <div style="background:#fff;padding:16px;border-radius:10px;max-width:320px;width:100%">
-    <h3>🔐 Kích hoạt Timemark</h3>
-    <p style="font-size:14px">Vui lòng sử dụng link kích hoạt do người bán cung cấp</p>
-    <p id="lockMsg" style="color:red;font-size:14px"></p>
-  </div>
-</div>
-
-<!-- ===== APP TIMEMARK (GIỮ NGUYÊN) ===== -->
-<div id="appLock">
-
 <h3>📍 Timemark Style Pro</h3>
 
 <div class="controls">
@@ -59,77 +39,7 @@ value="Trung Trắc, Phường 1, TP. Mỹ Tho, Tiền Giang">
 
 <canvas id="c"></canvas>
 
-</div>
-
 <script>
-/* ======================================================
-   🔐 QUẢN LÝ KEY – CHỈ SỬA PHẦN NÀY TRÊN GITHUB
-   ====================================================== */
-const KEY_DB = {
-  "nhovip": { expire: "2030-03-31" },
-  "tienbiep": { expire: "2030-02-28" },
-  "giamdoclo": { expire: "2030-02-28" }
-};
-/* ====================================================== */
-
-/* ===== DEVICE ID ===== */
-function getDeviceId(){
-  let id = localStorage.getItem("tmk_device");
-  if(!id){
-    id = "DEV-" + Math.random().toString(36).substr(2,10).toUpperCase();
-    localStorage.setItem("tmk_device", id);
-  }
-  return id;
-}
-
-/* ===== CHECK ACCESS (BÁN LINK) ===== */
-function checkAccess(){
-  const params = new URLSearchParams(window.location.search);
-  const linkKey = params.get("key");
-  const savedKey = localStorage.getItem("tmk_key");
-  const device = getDeviceId();
-  const today = new Date().toISOString().slice(0,10);
-
-  const key = linkKey || savedKey;
-  if(!key || !KEY_DB[key]){
-    deny("Key không hợp lệ");
-    return;
-  }
-
-  if(today > KEY_DB[key].expire){
-    deny("Key đã hết hạn");
-    return;
-  }
-
-  const usedDevice = localStorage.getItem("tmk_key_device");
-  if(usedDevice && usedDevice !== device){
-    deny("Key đã được kích hoạt trên thiết bị khác");
-    return;
-  }
-
-  localStorage.setItem("tmk_key", key);
-  localStorage.setItem("tmk_key_device", device);
-
-  unlock();
-
-  if(linkKey){
-    history.replaceState({}, document.title, location.pathname);
-  }
-}
-
-function unlock(){
-  document.getElementById("lockScreen").style.display="none";
-  document.getElementById("appLock").style.display="block";
-}
-
-function deny(msg){
-  document.getElementById("lockMsg").innerText = msg;
-  document.getElementById("appLock").style.display="none";
-}
-
-/* ===== KÍCH HOẠT NGAY ===== */
-checkAccess();
-
 /* ================= CONFIG ================= */
 const DAMP = 0.85;
 
@@ -277,8 +187,7 @@ function draw(){
  ctx.restore();
 }
 
-/* ================= DOWNLOAD ================= */
-<script>
+/* ================= DOWNLOAD IOS + ANDROID ================= */
 function isIOS(){
   return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
@@ -289,15 +198,13 @@ function download(){
   const dataURL = c.toDataURL("image/png");
 
   if(isIOS()){
-    // ✅ iOS: mở ảnh ra tab mới để lưu thủ công
     const win = window.open();
     win.document.write(`
       <html>
         <head>
-          <title>Lưu ảnh Timemark</title>
           <meta name="viewport" content="width=device-width, initial-scale=1">
         </head>
-        <body style="margin:0;text-align:center;background:#000">
+        <body style="margin:0;background:#000;text-align:center">
           <p style="color:#fff;font-size:14px">
             Nhấn giữ ảnh → Lưu vào Ảnh
           </p>
@@ -306,23 +213,17 @@ function download(){
       </html>
     `);
   }else{
-    // ✅ Android / PC
-    const a = document.createElement("a");
-    a.href = dataURL;
-    a.download = "timemark-style.png";
+    const a=document.createElement("a");
+    a.href=dataURL;
+    a.download="timemark-style.png";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   }
 }
-</script>
-
 
 setNow();
 </script>
+
 </body>
 </html>
-
-
-
-
