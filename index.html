@@ -29,7 +29,7 @@ canvas{max-width:100%;margin-top:10px;border:1px solid #ccc}
 
 <label>Địa điểm</label>
 <input type="text" id="addressInput"
-value="Không lo đi làm mà check-in concac. nhập Đ.c vô đây!!">
+value="Trung Trắc, Phường 1, TP. Mỹ Tho, Tiền Giang">
 
 <button onclick="setNow()">⏱ Lấy giờ hiện tại</button>
 <button onclick="getGPS()">📡 Lấy GPS</button>
@@ -56,7 +56,7 @@ function fs(pct){
 }
 
 /* ================= UTILS ================= */
-function roundRect(ctx,x,y,w,h,r,fill){
+function roundRect(ctx,x,y,w,h,r){
  ctx.beginPath();
  ctx.moveTo(x+r,y);
  ctx.lineTo(x+w-r,y);
@@ -68,12 +68,6 @@ function roundRect(ctx,x,y,w,h,r,fill){
  ctx.lineTo(x,y+r);
  ctx.quadraticCurveTo(x,y,x+r,y);
  ctx.closePath();
- if(fill) ctx.fill();
-}
-
-function generateCode(len=14){
- const s="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
- return Array.from({length:len},()=>s[Math.random()*s.length|0]).join("");
 }
 
 /* ================= LOAD IMAGE ================= */
@@ -100,10 +94,7 @@ function setNow(){
 
 /* ================= GPS ================= */
 function getGPS(){
- navigator.geolocation.getCurrentPosition(p=>{
-  addressInput.value =
-   `Lat ${p.coords.latitude.toFixed(5)}, Lng ${p.coords.longitude.toFixed(5)}`;
- });
+ addressInput.value = "Trung Trắc, Phường 1, TP. Mỹ Tho, Tiền Giang";
 }
 
 /* ================= DRAW ================= */
@@ -115,39 +106,52 @@ function draw(){
  const pad = fs(0.03);
  const boxX = pad;
 
- /* ==== FIX CHUẨN INFO HEIGHT ==== */
  const infoHeight =
-   fs(0.075) + // badge
-   fs(0.05)  + // gap
-   fs(0.035) + // ngày
-   fs(0.05)  + // gap
-   fs(0.06)  + // địa điểm
-   fs(0.045);  // cam kết
+   fs(0.075)+fs(0.04)+fs(0.03)+fs(0.04)+fs(0.05)+fs(0.05);
 
- /* ==== FIX KHÔNG CHO RỚT KHỎI CANVAS ==== */
- let cursorY = Math.max(
-   c.height - infoHeight - fs(0.04),
-   fs(0.08)
- );
+ let cursorY = c.height - infoHeight - fs(0.04);
+ if(cursorY < pad) cursorY = pad;
 
- /* ==== BADGE ĐIỂM DANH ==== */
+ /* ==== ĐIỂM DANH + GIỜ (LIỀN MẠCH) ==== */
  ctx.font = `bold ${fs(0.035)}px Arial`;
  const titleW = ctx.measureText(title.value).width + pad*2;
-
  ctx.font = `bold ${fs(0.045)}px Arial`;
  const timeW = ctx.measureText(time.value).width + pad*2;
-
  const boxH = fs(0.075);
+ const totalW = titleW + timeW;
+ const r = fs(0.02);
 
+ // nền trắng bo góc ngoài
  ctx.fillStyle="#fff";
- roundRect(ctx,boxX,cursorY,titleW+timeW,boxH,fs(0.02),true);
+ roundRect(ctx,boxX,cursorY,totalW,boxH,r);
+ ctx.fill();
 
+ // vàng bên trái (bo trái – phẳng phải)
  ctx.fillStyle="#FFC107";
- roundRect(ctx,boxX,cursorY,titleW,boxH,fs(0.02),true);
+ ctx.beginPath();
+ ctx.moveTo(boxX+r,cursorY);
+ ctx.lineTo(boxX+titleW,cursorY);
+ ctx.lineTo(boxX+titleW,cursorY+boxH);
+ ctx.lineTo(boxX+r,cursorY+boxH);
+ ctx.quadraticCurveTo(boxX,cursorY+boxH,boxX,cursorY+boxH-r);
+ ctx.lineTo(boxX,cursorY+r);
+ ctx.quadraticCurveTo(boxX,cursorY,boxX+r,cursorY);
+ ctx.closePath();
+ ctx.fill();
 
+ // xanh bên phải (bo phải – phẳng trái)
  ctx.fillStyle="#1E88E5";
- roundRect(ctx,boxX+titleW,cursorY,timeW,boxH,fs(0.02),true);
+ ctx.beginPath();
+ ctx.moveTo(boxX+titleW,cursorY);
+ ctx.lineTo(boxX+totalW-r,cursorY);
+ ctx.quadraticCurveTo(boxX+totalW,cursorY,boxX+totalW,cursorY+r);
+ ctx.lineTo(boxX+totalW,cursorY+boxH-r);
+ ctx.quadraticCurveTo(boxX+totalW,cursorY+boxH,boxX+totalW-r,cursorY+boxH);
+ ctx.lineTo(boxX+titleW,cursorY+boxH);
+ ctx.closePath();
+ ctx.fill();
 
+ // chữ
  ctx.textAlign="center";
  ctx.fillStyle="#000";
  ctx.font=`bold ${fs(0.035)}px Arial`;
@@ -156,46 +160,50 @@ function draw(){
  ctx.fillStyle="#fff";
  ctx.font=`bold ${fs(0.045)}px Arial`;
  ctx.fillText(time.value,boxX+titleW+timeW/2,cursorY+boxH*0.72);
+
  ctx.textAlign="left";
 
- cursorY += boxH + fs(0.05);
+ cursorY+=boxH+fs(0.04);
 
- /* ==== NGÀY ==== */
+ /* ==== NGÀY + ĐỊA CHỈ ==== */
+ const textX = boxX + fs(0.025);
+ const dateH = fs(0.035);
+ const addrH = addressInput.value.trim() ? fs(0.05) : 0;
+
+ ctx.fillStyle="#FFC107";
+ ctx.fillRect(
+   boxX,
+   cursorY - fs(0.028),
+   fs(0.008),
+   dateH + addrH
+ );
+
  ctx.fillStyle="#fff";
  ctx.font=`${fs(0.03)}px Arial`;
- ctx.fillText(date.value,boxX,cursorY);
- cursorY += fs(0.05);
+ ctx.fillText(date.value, textX, cursorY);
+ cursorY += dateH;
 
- /* ==== ĐỊA ĐIỂM ==== */
  if(addressInput.value.trim()){
-  ctx.fillStyle="#FFC107";
-  ctx.fillRect(boxX,cursorY-fs(0.03),fs(0.008),fs(0.06));
-
-  ctx.fillStyle="#fff";
-  ctx.font=`${fs(0.028)}px Arial`;
-  ctx.fillText(addressInput.value,boxX+fs(0.025),cursorY);
-  cursorY += fs(0.06);
+   ctx.font=`${fs(0.028)}px Arial`;
+   ctx.fillText(addressInput.value, textX, cursorY);
+   cursorY += addrH;
  }
 
  /* ==== CAM KẾT ==== */
  ctx.fillStyle="rgba(255,255,255,0.45)";
  ctx.font=`${fs(0.022)}px Arial`;
- ctx.fillText("", pad+fs(0.015), cursorY);
-
+ ctx.fillText("✓", pad+fs(0.015), cursorY);
  ctx.font=`${fs(0.023)}px Arial`;
  ctx.fillText("Cam kết ngày giờ chân thực", boxX+fs(0.05), cursorY);
 
  /* ==== BRAND ==== */
  ctx.textAlign="right";
  ctx.font=`bold ${fs(0.035)}px Arial`;
- const markW = ctx.measureText("mark").width;
-
+ const markW=ctx.measureText("mark").width;
  ctx.fillStyle="#FFC107";
  ctx.fillText("Time",c.width-pad-markW,c.height-pad-fs(0.03));
-
  ctx.fillStyle="rgba(255,255,255,0.9)";
  ctx.fillText("mark",c.width-pad,c.height-pad-fs(0.03));
-
  ctx.fillStyle="rgba(255,255,255,0.45)";
  ctx.font=`${fs(0.024)}px Arial`;
  ctx.fillText("100% Chân thực",c.width-pad,c.height-pad);
@@ -212,7 +220,7 @@ function draw(){
  ctx.restore();
 }
 
-/* ================= DOWNLOAD IOS + ANDROID ================= */
+/* ================= DOWNLOAD ================= */
 function isIOS(){
   return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
@@ -220,35 +228,26 @@ function isIOS(){
 function download(){
   if(!img.src) return;
   const dataURL = c.toDataURL("image/png");
-
   if(isIOS()){
     const win = window.open();
     win.document.write(`
       <html>
-      <head><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+      <meta name="viewport" content="width=device-width">
       <body style="margin:0;background:#000;text-align:center">
-        <p style="color:#fff;font-size:14px;padding:10px">
-          Nhấn giữ ảnh → Lưu vào Ảnh
-        </p>
-        <img src="${dataURL}" style="max-width:100%">
-      </body>
-      </html>
+      <p style="color:#fff">Nhấn giữ ảnh → Lưu</p>
+      <img src="${dataURL}" style="max-width:100%">
+      </body></html>
     `);
-    win.document.close();
   }else{
     const a=document.createElement("a");
     a.href=dataURL;
     a.download="timemark-style.png";
-    document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
   }
 }
 
-/* ================= AUTO INIT ================= */
 setNow();
 </script>
 
 </body>
 </html>
-
