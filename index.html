@@ -29,7 +29,7 @@ canvas{max-width:100%;margin-top:10px;border:1px solid #ccc}
 
 <label>Địa điểm</label>
 <input type="text" id="addressInput"
-value="Trung Trắc, Phường 1, TP. Mỹ Tho, Tiền Giang">
+value="Không lo đi làm mà check-in concac. nhập Đ.c vô đây!!">
 
 <button onclick="setNow()">⏱ Lấy giờ hiện tại</button>
 <button onclick="getGPS()">📡 Lấy GPS</button>
@@ -180,7 +180,7 @@ function draw(){
  /* ==== CAM KẾT ==== */
  ctx.fillStyle="rgba(255,255,255,0.45)";
  ctx.font=`${fs(0.022)}px Arial`;
- ctx.fillText("✓", pad+fs(0.015), cursorY);
+ ctx.fillText("", pad+fs(0.015), cursorY);
 
  ctx.font=`${fs(0.023)}px Arial`;
  ctx.fillText("Cam kết ngày giờ chân thực", boxX+fs(0.05), cursorY);
@@ -251,3 +251,4 @@ setNow();
 
 </body>
 </html>
+
