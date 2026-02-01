@@ -28,12 +28,10 @@ canvas{max-width:100%;margin-top:10px;border:1px solid #ccc}
 <input type="text" id="date">
 
 <label>Địa điểm – Ấp / Xã / Huyện</label>
-<input type="text" id="address1"
-value="không đi làm check-in con cặc!">
+<input type="text" id="address1">
 
 <label>Địa điểm – Tỉnh / Thành phố</label>
-<input type="text" id="address2"
-value="Vĩnh Long">
+<input type="text" id="address2">
 
 <button onclick="setNow()">⏱ Lấy giờ hiện tại</button>
 <button onclick="getGPS()">📡 Lấy GPS</button>
@@ -94,9 +92,46 @@ function setNow(){
  date.value=n.toLocaleDateString("vi-VN",{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
 
+/* ===== GPS GIỐNG GOOGLE MAPS (KHÔNG API KEY) ===== */
 function getGPS(){
- address1.value="Ấp Mỹ Thuận, Xã Trung Trắc, Huyện Cai Lậy";
- address2.value="Tiền Giang";
+ if(!navigator.geolocation){
+   alert("Thiết bị không hỗ trợ GPS");
+   return;
+ }
+
+ navigator.geolocation.getCurrentPosition(async pos=>{
+   const lat = pos.coords.latitude;
+   const lon = pos.coords.longitude;
+
+   try{
+     const res = await fetch(
+       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+     );
+     const data = await res.json();
+     const a = data.address || {};
+
+     // Ấp / xã / huyện
+     address1.value = [
+       a.hamlet,
+       a.village,
+       a.suburb,
+       a.town,
+       a.city_district,
+       a.county
+     ].filter(Boolean).join(", ");
+
+     // Tỉnh / thành phố
+     address2.value = a.state || a.city || "";
+
+   }catch(e){
+     alert("Không lấy được địa chỉ từ bản đồ");
+   }
+ }, ()=>{
+   alert("Không thể lấy vị trí. Vui lòng bật GPS.");
+ },{
+   enableHighAccuracy:true,
+   timeout:10000
+ });
 }
 
 function draw(){
@@ -105,78 +140,72 @@ function draw(){
 
  const pad=fs(0.03);
 
- /* ===== THÔNG SỐ BỐ CỤC ===== */
- const hBox=fs(0.058);
- const hDate=fs(0.034);
- const hAddr=fs(0.036); // mỗi dòng địa chỉ
+ const hBox=fs(0.062);
+ const hDate=fs(0.036);
+ const hAddr=fs(0.030);
  const hCommit=fs(0.034);
- const gap=fs(0.032);
+ const gap=fs(0.03);
 
  const totalH=hBox+gap+hDate+hAddr*2+gap+hCommit;
  let y=c.height-totalH-fs(0.04);
  if(y<pad) y=pad;
 
  /* ===== ĐIỂM DANH – GIỜ ===== */
- ctx.font=`bold ${fs(0.024)}px Arial`;
- const titleW=ctx.measureText(title.value).width+pad*1.4;
+ ctx.font=`bold ${fs(0.026)}px Arial`;
+ const titleW=ctx.measureText(title.value).width+pad*1.6;
+ ctx.font=`bold ${fs(0.036)}px Arial`;
+ const timeW=ctx.measureText(time.value).width+pad*1.6;
 
- ctx.font=`bold ${fs(0.031)}px Arial`;
- const timeW=ctx.measureText(time.value).width+pad*1.4;
+ const r=fs(0.008);
+ const totalW=titleW+timeW;
 
- const r=fs(0.003);
+ ctx.fillStyle="#FFFFFF";
+ roundRect(ctx,pad,y,totalW,hBox,r);
 
- ctx.fillStyle="#FFC107";
- roundRect(ctx,pad,y,titleW,hBox,r);
-
- ctx.fillStyle="#1E88E5";
- roundRect(ctx,pad+titleW-1,y,timeW+1,hBox,r);
+ ctx.fillStyle="#F6B800";
+ ctx.beginPath();
+ ctx.moveTo(pad+r,y);
+ ctx.lineTo(pad+titleW,y);
+ ctx.lineTo(pad+titleW,y+hBox);
+ ctx.lineTo(pad+r,y+hBox);
+ ctx.quadraticCurveTo(pad,y+hBox,pad,y+hBox-r);
+ ctx.lineTo(pad,y+r);
+ ctx.quadraticCurveTo(pad,y,pad+r,y);
+ ctx.closePath();
+ ctx.fill();
 
  ctx.textAlign="center";
  ctx.fillStyle="#000";
- ctx.font=`bold ${fs(0.024)}px Arial`;
- ctx.fillText(title.value,pad+titleW/2,y+hBox*0.62);
+ ctx.font=`bold ${fs(0.026)}px Arial`;
+ ctx.fillText(title.value,pad+titleW/2,y+hBox*0.64);
 
- ctx.fillStyle="#fff";
- ctx.font=`bold ${fs(0.031)}px Arial`;
- ctx.fillText(time.value,pad+titleW+timeW/2,y+hBox*0.62);
+ ctx.fillStyle="#1F4FD8";
+ ctx.font=`bold ${fs(0.036)}px Arial`;
+ ctx.fillText(time.value,pad+titleW+timeW/2,y+hBox*0.64);
  ctx.textAlign="left";
 
  y+=hBox+gap;
 
- /* ===== NGÀY + ĐỊA CHỈ (2 DÒNG) ===== */
+ /* ===== NGÀY + ĐỊA CHỈ ===== */
  const textX=pad+fs(0.03);
  const startY=y;
 
- ctx.fillStyle="#fff";
- ctx.font=`${fs(0.029)}px Arial`;
+ ctx.fillStyle="#FFFFFF";
+ ctx.font=`bold ${fs(0.032)}px Arial`;
  ctx.fillText(date.value,textX,y);
  y+=hDate;
 
- ctx.font=`${fs(0.027)}px Arial`;
- if(address1.value){
-   ctx.fillText(address1.value,textX,y);
-   y+=hAddr;
- }
- if(address2.value){
-   ctx.fillText(address2.value,textX,y);
-   y+=hAddr;
- }
+ ctx.font=`${fs(0.025)}px Arial`;
+ if(address1.value){ ctx.fillText(address1.value,textX,y); y+=hAddr; }
+ if(address2.value){ ctx.fillText(address2.value,textX,y); y+=hAddr; }
 
- // vạch vàng ôm toàn bộ ngày + địa chỉ
- ctx.fillStyle="#FFC107";
- ctx.fillRect(
-   pad,
-   startY-fs(0.024),
-   fs(0.008),
-   y-startY
- );
+ ctx.fillStyle="#F6B800";
+ ctx.fillRect(pad,startY-fs(0.024),fs(0.008),y-startY);
 
  y+=gap;
 
  /* ===== CAM KẾT ===== */
  ctx.fillStyle="rgba(255,255,255,0.45)";
- ctx.font=`${fs(0.022)}px Arial`;
- ctx.fillText("",pad+fs(0.01),y);
  ctx.font=`${fs(0.023)}px Arial`;
  ctx.fillText("Cam kết ngày giờ chân thực",textX,y);
 
@@ -184,7 +213,7 @@ function draw(){
  ctx.textAlign="right";
  ctx.font=`bold ${fs(0.035)}px Arial`;
  const markW=ctx.measureText("mark").width;
- ctx.fillStyle="#FFC107";
+ ctx.fillStyle="#F6B800";
  ctx.fillText("Time",c.width-pad-markW,c.height-pad-fs(0.03));
  ctx.fillStyle="rgba(255,255,255,0.9)";
  ctx.fillText("mark",c.width-pad,c.height-pad-fs(0.03));
@@ -197,7 +226,7 @@ function draw(){
  ctx.save();
  ctx.translate(c.width-fs(0.004),c.height/2);
  ctx.rotate(-Math.PI/2);
- ctx.fillStyle="rgba(255,255,255,0.6)";
+ ctx.fillStyle="rgba(255,255,255,0.70)";
  ctx.font=`${fs(0.016)}px Arial`;
  ctx.textAlign="center";
  ctx.fillText("ⓒ "+generateCode()+" · Timemark Verified",0,0);
@@ -224,4 +253,3 @@ setNow();
 </script>
 </body>
 </html>
-
