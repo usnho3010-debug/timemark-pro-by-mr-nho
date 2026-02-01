@@ -40,22 +40,17 @@ value="Trung Trắc, Phường 1, TP. Mỹ Tho, Tiền Giang">
 <canvas id="c"></canvas>
 
 <script>
-/* ================= CONFIG ================= */
 const DAMP = 0.85;
-
-/* ================= INIT ================= */
 const c = document.getElementById("c");
 const ctx = c.getContext("2d");
 const imageInput = document.getElementById("imageInput");
 let img = new Image();
 
-/* ================= SCALE ================= */
-function fs(pct){
-  const base = Math.min(c.width, c.height);
-  return Math.max(14, Math.min(64, Math.round(base * pct * DAMP)));
+function fs(p){
+  const b=Math.min(c.width,c.height);
+  return Math.max(12,Math.round(b*p*DAMP));
 }
 
-/* ================= UTILS ================= */
 function roundRect(ctx,x,y,w,h,r){
  ctx.beginPath();
  ctx.moveTo(x+r,y);
@@ -68,130 +63,104 @@ function roundRect(ctx,x,y,w,h,r){
  ctx.lineTo(x,y+r);
  ctx.quadraticCurveTo(x,y,x+r,y);
  ctx.closePath();
+ ctx.fill();
 }
 
-function generateCode(len=14){
+function generateCode(len=12){
  const s="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
  return Array.from({length:len},()=>s[Math.random()*s.length|0]).join("");
 }
 
-/* ================= LOAD IMAGE ================= */
-imageInput.addEventListener("change", e=>{
- const file = e.target.files[0];
- if(!file) return;
- const r = new FileReader();
- r.onload = ()=> img.src = r.result;
- r.readAsDataURL(file);
+imageInput.addEventListener("change",e=>{
+ const f=e.target.files[0]; if(!f) return;
+ const r=new FileReader();
+ r.onload=()=>img.src=r.result;
+ r.readAsDataURL(f);
 });
 
-img.onload = ()=>{
- c.width = img.width;
- c.height = img.height;
+img.onload=()=>{
+ c.width=img.width;
+ c.height=img.height;
  ctx.drawImage(img,0,0);
 };
 
-/* ================= TIME ================= */
 function setNow(){
- const n = new Date();
- time.value = n.toLocaleTimeString("vi-VN",{hour:'2-digit',minute:'2-digit'});
- date.value = n.toLocaleDateString("vi-VN",{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+ const n=new Date();
+ time.value=n.toLocaleTimeString("vi-VN",{hour:'2-digit',minute:'2-digit'});
+ date.value=n.toLocaleDateString("vi-VN",{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
 
-/* ================= GPS ================= */
 function getGPS(){
- addressInput.value = "Không đi làm mà check-in. check cai cccc";
+ addressInput.value="Trung Trắc, Phường 1, TP. Mỹ Tho, Tiền Giang";
 }
 
-/* ================= DRAW ================= */
 function draw(){
- if(!img.src) return alert("Vui lòng chọn ảnh trước");
-
+ if(!img.src) return alert("Chưa chọn ảnh");
  ctx.drawImage(img,0,0);
 
- const pad = fs(0.03);
- const boxX = pad;
+ const pad=fs(0.03);
 
- const infoHeight =
-   fs(0.075)+fs(0.04)+fs(0.03)+fs(0.04)+fs(0.05)+fs(0.05);
+ /* ===== GIẢM KHỐI MÀU ~5% + TĂNG KHOẢNG THỞ ===== */
+ const hBox=fs(0.062);          // ↓ 5%
+ const hDate=fs(0.035);
+ const hAddr=fs(0.045);
+ const hCommit=fs(0.035);
+ const gap=fs(0.028);           // ↑ giãn dọc
 
- let cursorY = c.height - infoHeight - fs(0.04);
- if(cursorY < pad) cursorY = pad;
+ const totalH=hBox+gap+hDate+hAddr+gap+hCommit;
+ let y=c.height-totalH-fs(0.04);
+ if(y<pad) y=pad;
 
- /* ==== ĐIỂM DANH + GIỜ (LIỀN MẠCH) ==== */
- ctx.font = `bold ${fs(0.035)}px Arial`;
- const titleW = ctx.measureText(title.value).width + pad*2;
- ctx.font = `bold ${fs(0.045)}px Arial`;
- const timeW = ctx.measureText(time.value).width + pad*2;
- const boxH = fs(0.075);
- const totalW = titleW + timeW;
- const r = fs(0.02);
+ /* ===== ĐIỂM DANH – GIỜ ===== */
+ ctx.font=`bold ${fs(0.027)}px Arial`;
+ const titleW=ctx.measureText(title.value).width+pad*1.6;
 
- ctx.fillStyle="#fff";
- roundRect(ctx,boxX,cursorY,totalW,boxH,r);
- ctx.fill();
+ ctx.font=`bold ${fs(0.035)}px Arial`;
+ const timeW=ctx.measureText(time.value).width+pad*1.6;
+
+ const r=fs(0.004);
 
  ctx.fillStyle="#FFC107";
- ctx.beginPath();
- ctx.moveTo(boxX+r,cursorY);
- ctx.lineTo(boxX+titleW,cursorY);
- ctx.lineTo(boxX+titleW,cursorY+boxH);
- ctx.lineTo(boxX+r,cursorY+boxH);
- ctx.quadraticCurveTo(boxX,cursorY+boxH,boxX,cursorY+boxH-r);
- ctx.lineTo(boxX,cursorY+r);
- ctx.quadraticCurveTo(boxX,cursorY,boxX+r,cursorY);
- ctx.closePath();
- ctx.fill();
+ roundRect(ctx,pad,y,titleW,hBox,r);
 
  ctx.fillStyle="#1E88E5";
- ctx.beginPath();
- ctx.moveTo(boxX+titleW,cursorY);
- ctx.lineTo(boxX+totalW-r,cursorY);
- ctx.quadraticCurveTo(boxX+totalW,cursorY,boxX+totalW,cursorY+r);
- ctx.lineTo(boxX+totalW,cursorY+boxH-r);
- ctx.quadraticCurveTo(boxX+totalW,cursorY+boxH,boxX+totalW-r,cursorY+boxH);
- ctx.lineTo(boxX+titleW,cursorY+boxH);
- ctx.closePath();
- ctx.fill();
+ roundRect(ctx,pad+titleW-1,y,timeW+1,hBox,r);
 
  ctx.textAlign="center";
+
  ctx.fillStyle="#000";
- ctx.font=`bold ${fs(0.035)}px Arial`;
- ctx.fillText(title.value,boxX+titleW/2,cursorY+boxH*0.68);
+ ctx.font=`bold ${fs(0.027)}px Arial`;
+ ctx.fillText(title.value,pad+titleW/2,y+hBox*0.62);
 
  ctx.fillStyle="#fff";
- ctx.font=`bold ${fs(0.045)}px Arial`;
- ctx.fillText(time.value,boxX+titleW+timeW/2,cursorY+boxH*0.72);
+ ctx.font=`bold ${fs(0.035)}px Arial`;
+ ctx.fillText(time.value,pad+titleW+timeW/2,y+hBox*0.62);
 
  ctx.textAlign="left";
- cursorY+=boxH+fs(0.04);
+ y+=hBox+gap;
 
- /* ==== NGÀY + ĐỊA CHỈ ==== */
- const textX = boxX + fs(0.025);
- const dateH = fs(0.035);
- const addrH = addressInput.value.trim() ? fs(0.05) : 0;
-
+ /* ===== NGÀY + ĐỊA CHỈ (KHÔNG ĐÈ) ===== */
+ const textX=pad+fs(0.03);
  ctx.fillStyle="#FFC107";
- ctx.fillRect(boxX,cursorY-fs(0.028),fs(0.008),dateH+addrH);
+ ctx.fillRect(pad,y-fs(0.025),fs(0.008),hDate+hAddr);
 
  ctx.fillStyle="#fff";
  ctx.font=`${fs(0.03)}px Arial`;
- ctx.fillText(date.value,textX,cursorY);
- cursorY+=dateH;
+ ctx.fillText(date.value,textX,y);
+ y+=hDate;
 
- if(addressInput.value.trim()){
-  ctx.font=`${fs(0.028)}px Arial`;
-  ctx.fillText(addressInput.value,textX,cursorY);
-  cursorY+=addrH;
- }
+ ctx.font=`${fs(0.028)}px Arial`;
+ ctx.fillText(addressInput.value,textX,y);
+ y+=hAddr+gap;
 
- /* ==== CAM KẾT ==== */
+ /* ===== CAM KẾT (THOÁNG) ===== */
  ctx.fillStyle="rgba(255,255,255,0.45)";
  ctx.font=`${fs(0.022)}px Arial`;
- ctx.fillText("",pad+fs(0.015),cursorY);
+ ctx.fillText("✓",pad+fs(0.01),y);
  ctx.font=`${fs(0.023)}px Arial`;
- ctx.fillText("Cam kết ngày giờ chân thực",boxX+fs(0.05),cursorY);
+ ctx.fillText("Cam kết ngày giờ chân thực",textX,y);
 
- /* ==== BRAND ==== */
+ /* ===== BRAND ===== */
  ctx.textAlign="right";
  ctx.font=`bold ${fs(0.035)}px Arial`;
  const markW=ctx.measureText("mark").width;
@@ -204,44 +173,34 @@ function draw(){
  ctx.fillText("100% Chân thực",c.width-pad,c.height-pad);
  ctx.textAlign="left";
 
- /* ==== WATERMARK DỌC (SÁT VIỀN + NHỎ HƠN) ==== */
+ /* ===== WATERMARK DỌC ===== */
  ctx.save();
- ctx.translate(c.width - fs(0.018), c.height / 2);
- ctx.rotate(-Math.PI / 2);
- ctx.fillStyle="rgba(255,255,255,0.85)";
- ctx.font=`${fs(0.021)}px Arial`;
+ ctx.translate(c.width-fs(0.006),c.height/2);
+ ctx.rotate(-Math.PI/2);
+ ctx.fillStyle="rgba(255,255,255,0.65)";
+ ctx.font=`${fs(0.017)}px Arial`;
  ctx.textAlign="center";
- ctx.fillText("ⓒ " + generateCode() + " · Timemark Verified", 0, 0);
+ ctx.fillText("ⓒ "+generateCode()+" · Timemark Verified",0,0);
  ctx.restore();
 }
 
-/* ================= DOWNLOAD ================= */
 function isIOS(){
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+ return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
 function download(){
  if(!img.src) return;
- const dataURL=c.toDataURL("image/png");
+ const d=c.toDataURL("image/png");
  if(isIOS()){
-  const win=window.open();
-  win.document.write(`
-   <html><meta name="viewport" content="width=device-width">
-   <body style="margin:0;background:#000;text-align:center">
-   <p style="color:#fff">Nhấn giữ ảnh → Lưu</p>
-   <img src="${dataURL}" style="max-width:100%">
-   </body></html>
-  `);
+  const w=window.open();
+  w.document.write(`<img src="${d}" style="max-width:100%">`);
  }else{
   const a=document.createElement("a");
-  a.href=dataURL;
-  a.download="timemark-style.png";
-  a.click();
+  a.href=d;a.download="timemark-style.png";a.click();
  }
 }
 
 setNow();
 </script>
-
 </body>
 </html>
