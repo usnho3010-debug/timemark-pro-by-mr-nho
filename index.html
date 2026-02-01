@@ -27,9 +27,13 @@ canvas{max-width:100%;margin-top:10px;border:1px solid #ccc}
 <label>Ngày</label>
 <input type="text" id="date">
 
-<label>Địa điểm</label>
-<input type="text" id="addressInput"
-value="Trung Trắc, Phường 1, TP. Mỹ Tho, Tiền Giang">
+<label>Địa điểm – Ấp / Xã / Huyện</label>
+<input type="text" id="address1"
+value="Ấp Mỹ Thuận, Xã Trung Trắc, Huyện Cai Lậy">
+
+<label>Địa điểm – Tỉnh / Thành phố</label>
+<input type="text" id="address2"
+value="Tiền Giang">
 
 <button onclick="setNow()">⏱ Lấy giờ hiện tại</button>
 <button onclick="getGPS()">📡 Lấy GPS</button>
@@ -91,7 +95,8 @@ function setNow(){
 }
 
 function getGPS(){
- addressInput.value="Trung Trắc, Phường 1, TP. Mỹ Tho, Tiền Giang";
+ address1.value="Ấp Mỹ Thuận, Xã Trung Trắc, Huyện Cai Lậy";
+ address2.value="Tiền Giang";
 }
 
 function draw(){
@@ -100,25 +105,25 @@ function draw(){
 
  const pad=fs(0.03);
 
- /* ===== GIẢM KHỐI MÀU ~5% + TĂNG KHOẢNG THỞ ===== */
- const hBox=fs(0.062);          // ↓ 5%
- const hDate=fs(0.035);
- const hAddr=fs(0.045);
- const hCommit=fs(0.035);
- const gap=fs(0.028);           // ↑ giãn dọc
+ /* ===== THÔNG SỐ BỐ CỤC ===== */
+ const hBox=fs(0.058);
+ const hDate=fs(0.034);
+ const hAddr=fs(0.036); // mỗi dòng địa chỉ
+ const hCommit=fs(0.034);
+ const gap=fs(0.032);
 
- const totalH=hBox+gap+hDate+hAddr+gap+hCommit;
+ const totalH=hBox+gap+hDate+hAddr*2+gap+hCommit;
  let y=c.height-totalH-fs(0.04);
  if(y<pad) y=pad;
 
  /* ===== ĐIỂM DANH – GIỜ ===== */
- ctx.font=`bold ${fs(0.027)}px Arial`;
- const titleW=ctx.measureText(title.value).width+pad*1.6;
+ ctx.font=`bold ${fs(0.024)}px Arial`;
+ const titleW=ctx.measureText(title.value).width+pad*1.4;
 
- ctx.font=`bold ${fs(0.035)}px Arial`;
- const timeW=ctx.measureText(time.value).width+pad*1.6;
+ ctx.font=`bold ${fs(0.031)}px Arial`;
+ const timeW=ctx.measureText(time.value).width+pad*1.4;
 
- const r=fs(0.004);
+ const r=fs(0.003);
 
  ctx.fillStyle="#FFC107";
  roundRect(ctx,pad,y,titleW,hBox,r);
@@ -127,33 +132,48 @@ function draw(){
  roundRect(ctx,pad+titleW-1,y,timeW+1,hBox,r);
 
  ctx.textAlign="center";
-
  ctx.fillStyle="#000";
- ctx.font=`bold ${fs(0.027)}px Arial`;
+ ctx.font=`bold ${fs(0.024)}px Arial`;
  ctx.fillText(title.value,pad+titleW/2,y+hBox*0.62);
 
  ctx.fillStyle="#fff";
- ctx.font=`bold ${fs(0.035)}px Arial`;
+ ctx.font=`bold ${fs(0.031)}px Arial`;
  ctx.fillText(time.value,pad+titleW+timeW/2,y+hBox*0.62);
-
  ctx.textAlign="left";
+
  y+=hBox+gap;
 
- /* ===== NGÀY + ĐỊA CHỈ (KHÔNG ĐÈ) ===== */
+ /* ===== NGÀY + ĐỊA CHỈ (2 DÒNG) ===== */
  const textX=pad+fs(0.03);
- ctx.fillStyle="#FFC107";
- ctx.fillRect(pad,y-fs(0.025),fs(0.008),hDate+hAddr);
+ const startY=y;
 
  ctx.fillStyle="#fff";
- ctx.font=`${fs(0.03)}px Arial`;
+ ctx.font=`${fs(0.029)}px Arial`;
  ctx.fillText(date.value,textX,y);
  y+=hDate;
 
- ctx.font=`${fs(0.028)}px Arial`;
- ctx.fillText(addressInput.value,textX,y);
- y+=hAddr+gap;
+ ctx.font=`${fs(0.027)}px Arial`;
+ if(address1.value){
+   ctx.fillText(address1.value,textX,y);
+   y+=hAddr;
+ }
+ if(address2.value){
+   ctx.fillText(address2.value,textX,y);
+   y+=hAddr;
+ }
 
- /* ===== CAM KẾT (THOÁNG) ===== */
+ // vạch vàng ôm toàn bộ ngày + địa chỉ
+ ctx.fillStyle="#FFC107";
+ ctx.fillRect(
+   pad,
+   startY-fs(0.024),
+   fs(0.008),
+   y-startY
+ );
+
+ y+=gap;
+
+ /* ===== CAM KẾT ===== */
  ctx.fillStyle="rgba(255,255,255,0.45)";
  ctx.font=`${fs(0.022)}px Arial`;
  ctx.fillText("✓",pad+fs(0.01),y);
@@ -175,10 +195,10 @@ function draw(){
 
  /* ===== WATERMARK DỌC ===== */
  ctx.save();
- ctx.translate(c.width-fs(0.006),c.height/2);
+ ctx.translate(c.width-fs(0.004),c.height/2);
  ctx.rotate(-Math.PI/2);
- ctx.fillStyle="rgba(255,255,255,0.65)";
- ctx.font=`${fs(0.017)}px Arial`;
+ ctx.fillStyle="rgba(255,255,255,0.6)";
+ ctx.font=`${fs(0.016)}px Arial`;
  ctx.textAlign="center";
  ctx.fillText("ⓒ "+generateCode()+" · Timemark Verified",0,0);
  ctx.restore();
