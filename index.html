@@ -2,48 +2,170 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Timemark Style Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timemark Web App Pro</title>
+
 <style>
-body{font-family:Arial;background:#f4f4f4;padding:10px}
-input,button,label{width:100%;padding:6px;margin:4px 0;font-size:14px}
-canvas{max-width:100%;margin-top:10px;border:1px solid #ccc}
-.controls{background:#fff;padding:10px;border-radius:8px}
+/* ===== THEME ===== */
+:root{
+  --bg1:#0f2027;
+  --bg2:#203a43;
+  --bg3:#2c5364;
+  --card:rgba(255,255,255,.12);
+  --text:#fff;
+}
+body.light{
+  --bg1:#fdfbfb;
+  --bg2:#ebedee;
+  --bg3:#dfe9f3;
+  --card:#fff;
+  --text:#000;
+}
+
+/* ===== BASE ===== */
+*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Arial}
+body{
+  margin:0;
+  min-height:100vh;
+  background:linear-gradient(135deg,var(--bg1),var(--bg2),var(--bg3));
+  color:var(--text);
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+h3{margin:0 0 10px}
+
+/* ===== CARD ===== */
+.card{
+  width:100%;
+  max-width:480px;
+  background:var(--card);
+  border-radius:20px;
+  padding:18px;
+  backdrop-filter:blur(14px);
+  box-shadow:0 20px 50px rgba(0,0,0,.35);
+  position:relative;
+  z-index:5;
+}
+
+/* ===== CONTROLS ===== */
+.controls label{font-size:13px;opacity:.9}
+.controls input,.controls button{
+  width:100%;
+  padding:10px;
+  margin:6px 0;
+  border-radius:10px;
+  border:none;
+  font-size:14px;
+}
+.controls button{
+  background:#f6b800;
+  font-weight:bold;
+  cursor:pointer;
+}
+canvas{
+  max-width:100%;
+  margin-top:12px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.3);
+}
+
+/* ===== FLOAT TOOLS ===== */
+.tools{
+  position:fixed;
+  top:12px;
+  right:12px;
+  display:flex;
+  gap:6px;
+  z-index:10;
+}
+.tools button{
+  padding:8px 10px;
+  border:none;
+  border-radius:8px;
+  font-size:13px;
+  cursor:pointer;
+}
+
+/* ===== TOAST ===== */
+.toast{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#000;
+  color:#fff;
+  padding:10px 16px;
+  border-radius:20px;
+  font-size:14px;
+  opacity:0;
+  transition:.4s;
+  z-index:20;
+}
+.toast.show{opacity:1}
+
+/* ===== HOA RƠI ===== */
+.petals{position:fixed;inset:0;pointer-events:none;z-index:1}
+.petal{
+  position:absolute;top:-10%;
+  animation:fall linear infinite,sway ease-in-out infinite;
+  opacity:.8;
+}
+@keyframes fall{to{transform:translateY(120vh)}}
+@keyframes sway{0%{margin-left:0}50%{margin-left:30px}100%{margin-left:0}}
 </style>
 </head>
 
 <body>
 
+<!-- HOA -->
+<div class="petals" id="petals"></div>
+
+<!-- TOOLS -->
+<div class="tools">
+  <button onclick="toggleTheme()">🌗</button>
+  <button onclick="togglePetal()">🌸</button>
+</div>
+
+<!-- APP -->
+<div class="card">
+
 <h3>📍 Timemark Style Pro</h3>
+<p>🌸 Chúc mừng năm mới – An khang · Thịnh vượng 🌸</p>
 
 <div class="controls">
 <input type="file" id="imageInput" accept="image/*">
 
 <label>Tiêu đề</label>
-<input type="text" id="title" value="Điểm danh">
+<input id="title" value="Điểm danh">
 
 <label>Giờ</label>
-<input type="text" id="time">
+<input id="time">
 
 <label>Ngày</label>
-<input type="text" id="date">
+<input id="date">
 
 <label>Địa điểm – Ấp / Xã / Huyện</label>
-<input type="text" id="address1"
-value="không đi làm check-in con cặc!">
+<input id="address1">
 
 <label>Địa điểm – Tỉnh / Thành phố</label>
-<input type="text" id="address2"
-value="Vĩnh Long">
+<input id="address2">
 
-<button onclick="setNow()">⏱ Lấy giờ hiện tại</button>
-<button onclick="getGPS()">📡 Lấy GPS</button>
+<button onclick="setNow()">⏱ Lấy giờ</button>
+<button onclick="getGPS()">📡 GPS</button>
 <button onclick="draw()">🖊 Tạo watermark</button>
 <button onclick="download()">⬇️ Tải ảnh</button>
 </div>
 
 <canvas id="c"></canvas>
 
+</div>
+
+<div class="toast" id="toast">👋 Chào mừng bạn đến Timemark Pro</div>
+
+<!-- ================= LOGIC WATERMARK (GIỮ NGUYÊN 100%) ================= -->
 <script>
+/* 🔴 TOÀN BỘ LOGIC CANVAS GIỮ NGUYÊN – KHÔNG ĐỘNG 🔴 */
 const DAMP = 0.85;
 const c = document.getElementById("c");
 const ctx = c.getContext("2d");
@@ -253,5 +375,43 @@ function download(){
 
 setNow();
 </script>
+
+<script>
+/* ===== UI SCRIPT ===== */
+const toast=document.getElementById("toast");
+setTimeout(()=>toast.classList.add("show"),600);
+setTimeout(()=>toast.classList.remove("show"),3500);
+
+function toggleTheme(){
+ document.body.classList.toggle("light");
+}
+
+let petalOn=true;
+function togglePetal(){
+ petalOn=!petalOn;
+ document.getElementById("petals").style.display=petalOn?"block":"none";
+}
+
+const flowers=["🌸","🌼","🌺"];
+const box=document.getElementById("petals");
+for(let i=0;i<25;i++){
+ let p=document.createElement("div");
+ p.className="petal";
+ p.innerText=flowers[Math.floor(Math.random()*flowers.length)];
+ p.style.left=Math.random()*100+"vw";
+ p.style.fontSize=(14+Math.random()*18)+"px";
+ p.style.animationDuration=(10+Math.random()*10)+"s,"+(3+Math.random()*4)+"s";
+ p.style.animationDelay=Math.random()*5+"s";
+ box.appendChild(p);
+}
+
+/* ===== PHÍM TẮT ===== */
+document.addEventListener("keydown",e=>{
+ if(e.key==="g")getGPS();
+ if(e.key==="w")draw();
+ if(e.key==="s")download();
+});
+</script>
+
 </body>
 </html>
